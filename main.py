@@ -5,17 +5,17 @@ from flask import Flask, render_template, request, redirect, url_for
 import os
 from dotenv import load_dotenv
 load_dotenv()
+api_key = os.getenv("OWM_API_KEY")
 
 OWM_ENDPOINT = "https://api.openweathermap.org/data/2.5/weather"
 OWM_FORECAST_ENDPOINT = "https://api.openweathermap.org/data/2.5/forecast"
 GEOCODING_API_ENDPOINT = "http://api.openweathermap.org/geo/1.0/direct"
-api_key = os.getenv("OWM_API_KEY")
-# api_key = os.environ.get("OWM_API_KEY")
+
 
 app = Flask(__name__)
 
 
-# Display home page and get city name entered into search form
+# Home page: asks the user to input a city
 @app.route("/", methods=["GET", "POST"])
 def home():
     if request.method == "POST":
@@ -24,10 +24,9 @@ def home():
     return render_template("index.html")
 
 
-# Display weather forecast for specific city using data from OpenWeather API
+# Weather information page: displays the weather for the given city
 @app.route("/<city>", methods=["GET", "POST"])
 def get_weather(city):
-    # Format city name and get current date to display on page
     city_name = string.capwords(city)
     today = datetime.datetime.now()
     current_date = today.strftime("%A, %B %d")
@@ -42,14 +41,14 @@ def get_weather(city):
     location_response = requests.get(GEOCODING_API_ENDPOINT, params=location_params)
     location_data = location_response.json()
 
-    # Prevent IndexError if user entered a city name with no coordinates by redirecting to error page
+    # Handle error if no coordinates are returned
     if not location_data:
         return redirect(url_for("error"))
-    else:
-        lat = location_data[0]['lat']
-        lon = location_data[0]['lon']
 
-    # Get OpenWeather API data
+    lat = location_data[0]['lat']
+    lon = location_data[0]['lon']
+
+    # Get weather data
     weather_params = {
         "lat": lat,
         "lon": lon,
@@ -57,37 +56,45 @@ def get_weather(city):
         "units": "metric",
     }
     weather_response = requests.get(OWM_ENDPOINT, weather_params)
-    weather_response.raise_for_status()
     weather_data = weather_response.json()
 
-    # Get current weather data
+    # Get current weather details
     current_temp = round(weather_data['main']['temp'])
     current_weather = weather_data['weather'][0]['main']
     min_temp = round(weather_data['main']['temp_min'])
     max_temp = round(weather_data['main']['temp_max'])
     wind_speed = weather_data['wind']['speed']
 
-    # Get five-day weather forecast data
+    # Get 5-day forecast
     forecast_response = requests.get(OWM_FORECAST_ENDPOINT, weather_params)
     forecast_data = forecast_response.json()
 
-    # Make lists of temperature and weather description data to show user
+    # Prepare lists of temperature and weather descriptions for 5-day forecast
     five_day_temp_list = [round(item['main']['temp']) for item in forecast_data['list'] if '12:00:00' in item['dt_txt']]
-    five_day_weather_list = [item['weather'][0]['main'] for item in forecast_data['list']
-                             if '12:00:00' in item['dt_txt']]
+    five_day_weather_list = [item['weather'][0]['main'] for item in forecast_data['list'] if '12:00:00' in item['dt_txt']]
 
-    # Get next four weekdays to show user alongside weather data
-    five_day_unformatted = [today, today + datetime.timedelta(days=1), today + datetime.timedelta(days=2),
-                            today + datetime.timedelta(days=3), today + datetime.timedelta(days=4)]
-    five_day_dates_list = [date.strftime("%a") for date in five_day_unformatted]
+    # Get dates for the next 5 days
+    five_day_dates_list = [(today + datetime.timedelta(days=i)).strftime("%A") for i in range(5)]
+    
+    # Before returning the template, zip the lists in the Python backend
+    # Zip the lists in the backend
+    five_day_forecast = zip(five_day_dates_list, five_day_temp_list, five_day_weather_list)
 
-    return render_template("city.html", city_name=city_name, current_date=current_date, current_temp=current_temp,
-                           current_weather=current_weather, min_temp=min_temp, max_temp=max_temp, wind_speed=wind_speed,
-                           five_day_temp_list=five_day_temp_list, five_day_weather_list=five_day_weather_list,
-                           five_day_dates_list=five_day_dates_list)
+    # Pass the zipped list to the template
+    return render_template(
+        "city.html",
+        city_name=city_name,
+        current_date=current_date,
+        current_temp=current_temp,
+        current_weather=current_weather,
+        min_temp=min_temp,
+        max_temp=max_temp,
+        wind_speed=wind_speed,
+        five_day_forecast=five_day_forecast  # Passing zipped forecast data
+    )
 
 
-# Display error page for invalid input
+# Error page: handles invalid city input
 @app.route("/error")
 def error():
     return render_template("error.html")
