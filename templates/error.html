@@ -1,26 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <link rel="stylesheet" href="{{url_for('static', filename='css/main.css')}}">
-        <title> Error </title>
-    </head>
-    <body>
-        <main>
-            <div class="container">
-                <div class="background">
-                    <img src="/static/assets/404_error_background.jpg" alt="" id="error-background">
-                </div>
-                <div class="change-button">
-                    <img class="chevron-icon" src="/static/assets/chevron-left.png" alt="">
-                    <a href="{{ url_for('home')}}"> CHANGE CITY </a>
-                </div>
-                <h2 id="error-text"> This city does not exist. Please try again. </h2>
-                <div class="footer">
-                    <a> © Parth Thakkar </a>
-                </div>
-            </div>
-        </main>
-    </body>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+    <title>Oops! Something went wrong</title>
+</head>
+<body>
+    <div class="error-container">
+        <h1 class="error-title">Oops! Something Went Wrong</h1>
+        <p class="error-message">{{ error_message }}</p>
+        <a href="{{ url_for('home') }}" class="go-back-btn">Go Back</a>
+    </div>
+</body>
 </html>
